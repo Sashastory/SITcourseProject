@@ -7,6 +7,10 @@ package sitcourseproject;
 
 import gnu.io.*;
 import java.io.*;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 /**
@@ -21,7 +25,10 @@ public class DataLinkLayer {
     private OutputStream output;
     
     private byte[] portParameters = new byte[4];
-    
+    private byte[] globalInformFrame;
+    private String fileExtension;
+    private String globalFileName;
+   
     private boolean dataFlag = false;
     private boolean isMaster = false;
     private boolean isReceived = false;
@@ -30,11 +37,14 @@ public class DataLinkLayer {
     
     private boolean connectionFlag = false;
     private boolean ackFlag = false;
+    private boolean repeatFlag = false;
     private boolean setFlag = false;
     private boolean paramFlag = false;
     
     int globalBufIndex2 = 0;
     int sum2 = 0;
+    int repeatCount = 0;
+    long diskSpace;
     byte[] globalBuffer = new byte[100000];
     
     public DataLinkLayer(NewJFrame window) {
@@ -50,6 +60,9 @@ public class DataLinkLayer {
     
     public static Integer[] toBitArray(byte b) {
         String str = Integer.toBinaryString(b);
+        if (str.length() > 8) {
+            str = str.substring(24);
+        }
         Integer[] bitArray = new Integer[str.length()];
         Integer[] result = {0,0,0,0,0,0,0,0};
         for (int i=0; i<bitArray.length; i++) {
@@ -70,6 +83,26 @@ public class DataLinkLayer {
         return frame;
     }
     
+    public byte[] createLengthFrame(byte length) {
+        byte[] frame = new byte[130];
+        frame[0] = (byte)0xFF;
+        frame[1] = (byte)0x49;
+        frame[2] = length;
+        frame[129] = (byte)0xFF;
+        return frame;
+    }
+    
+    public byte[] createNameFrame(byte[] fileName) {
+        byte[] frame = new byte[130];
+        frame[0] = (byte)0xFF;
+        frame[1] = (byte)0x50;
+        frame[2] = (byte) fileName.length;
+        for (int i=3; i < fileName.length+3; i++) {
+            frame[i] = fileName[i-3];
+        }
+        frame[129] = (byte)0xFF;
+        return frame;
+    }
     public byte[] createInformFrame(byte[] data) {
         byte[] frame = new byte[130];
         frame[0] = (byte)0xFF;
@@ -117,6 +150,56 @@ public class DataLinkLayer {
         return frame;
     }
     
+    public void diskSpace() {
+        for (Path root : FileSystems.getDefault().getRootDirectories()) {
+            try {
+                FileStore store = Files.getFileStore(root);
+                String rootString = root.toString();
+                if (rootString.equals("C:\\")) {
+                    diskSpace = store.getUsableSpace();
+                }
+            } catch (IOException ex) {
+            }
+        }
+    }
+    
+    public void decodingError() {
+        byte[] nakFrame = createNakFrame();
+        this.physicalLayer.writeRawBits(nakFrame);
+    }
+    
+    public void receiveLengthFrame(byte length) {
+        window.jTextArea1.append("Length кадр получен" + "\n");
+        if (length < diskSpace) {
+            byte[] ackFrame = createAckFrame();
+            this.physicalLayer.writeRawBits(ackFrame);
+            window.jTextArea1.append("На диске достаточно места для записи файла" + "\n");
+        } else {
+            byte[] nakFrame = createNakFrame();
+            this.physicalLayer.writeRawBits(nakFrame);
+            window.jTextArea1.append("На диске не достаточно места для записи файла" + "\n");
+        }
+    }
+    
+    public void receiveNameFrame(byte[] data) {
+        window.jTextArea1.append("Name кадр получен" + "\n"); 
+        int nameLength = data[2];
+        int curPos = 0;
+        byte[] filePartCoded = new byte[nameLength];
+        byte[] filePart = new byte[nameLength/14];
+        byte[] codedByte = new byte[14];
+        System.arraycopy(data,3,filePartCoded,0,nameLength);
+        for(int frameIndex=0; frameIndex < nameLength; frameIndex+=14,curPos++) {
+            System.arraycopy(filePartCoded,frameIndex,codedByte,0,14);
+            byte temp = Encrypter.decoding(codedByte);
+            filePart[curPos] = temp;
+        }
+        globalFileName = new String(filePart);
+        fileExtension = globalFileName.substring(globalFileName.lastIndexOf('.')+1);
+        byte[] ackFrame = createAckFrame();
+        this.physicalLayer.writeRawBits(ackFrame);
+    }
+    
     public void receiveLinkFrame() {
         window.jTextArea1.append("Link кадр получен" + "\n");
         this.isMaster = false;
@@ -130,7 +213,9 @@ public class DataLinkLayer {
         try {
             if(!isReceived) {
                 JOptionPane.showMessageDialog(window, "Выберите путь для сохранения файла");
+                File file = new File(globalFileName);
                 JFileChooser  saveFile = new JFileChooser();
+                saveFile.setSelectedFile(file);
                 saveFile.showSaveDialog(null);
                 String filePath = saveFile.getSelectedFile().getAbsolutePath();
                 output = new FileOutputStream(filePath);
@@ -145,6 +230,10 @@ public class DataLinkLayer {
             for(int frameIndex=0; frameIndex < infLength; frameIndex+=14,curPos++) {
                 System.arraycopy(filePartCoded,frameIndex,codedByte,0,14);
                 byte temp = Encrypter.decoding(codedByte);
+                if(temp == -1) {
+                    decodingError();
+                    return;
+                }
                 filePart[curPos] = temp;
             }
             output.write(filePart,0,filePart.length);
@@ -163,8 +252,7 @@ public class DataLinkLayer {
         this.physicalLayer.writeRawBits(ackFrame);
         for(int i = 0;i<4;i++) {
             this.portParameters[i] = readBuffer[i+2];
-        }
-        
+        }   
     }
     
     public void receiveAckFrame() {
@@ -201,10 +289,20 @@ public class DataLinkLayer {
     
     public void receiveNakFrame() {
         window.jTextArea1.append("Nak кадр получен" + "\n");
+        while(repeatCount < 3) {
+           this.physicalLayer.writeRawBits(globalInformFrame);
+           window.jTextArea1.append("Inform кадр отправлен повторно" + "\n");
+           repeatCount++;
+        }
+        if (repeatCount == 3) {
+            byte[] dscFrame = createDisconnectFrame();
+            this.physicalLayer.writeRawBits(dscFrame);
+        }
     }
     
     public void receiveDisconnectFrame() {
-        window.jTextArea1.append("Disconnect кадр получен" + "\n");
+        window.jTextArea1.append("Disconnect кадр получен" + "\n"
+        + "Разрыв соединения");
     }
     
     public void initializePortParameters(byte[] params) {
@@ -218,10 +316,45 @@ public class DataLinkLayer {
         this.isMaster = true;
     }
     
+    public void sendLengthOfFile(String fileName) {
+        File file = new File(fileName);
+        byte fileLength = (byte) file.length();
+        byte[] lengthFrame = createLengthFrame(fileLength);
+        this.physicalLayer.writeRawBits(lengthFrame);
+    }
+    
+    public void sendFileName(String fileNameFull) {
+        String fileName = fileNameFull.substring(fileNameFull.lastIndexOf("\\")+1);
+        int bufSize = fileName.length();
+        byte[] stringBuffer = new byte[bufSize];
+        stringBuffer = fileName.getBytes();
+        int destPos = 0;
+        int amountOfBytes = bufSize*14;
+        byte[] frame = new byte[amountOfBytes];
+        Integer[] singleByte;
+        Integer[] firstPart = new Integer[4];
+        Integer[] secondPart = new Integer[4];
+        byte[] firstPartCoded;
+        byte[] secondPartCoded;
+        for(int frameIndex = 0; frameIndex < bufSize; frameIndex++) {
+            singleByte = toBitArray(stringBuffer[frameIndex]);
+            System.arraycopy(singleByte,0,firstPart,0,4);
+            System.arraycopy(singleByte,4,secondPart,0,4);
+            firstPartCoded = Encrypter.coding(firstPart);
+            secondPartCoded = Encrypter.coding(secondPart);
+            System.arraycopy(firstPartCoded,0,frame,destPos,7);
+            System.arraycopy(secondPartCoded,0,frame,destPos+7,7);
+            destPos+=14;
+        }
+        byte[] nameFrame = createNameFrame(frame);
+        this.getPhysicalLayer().writeRawBits(nameFrame);      
+    }
     public void receiveDataFromAppLayer(String fileName) {
         try {
             while(isReady) {
-                FileInputStream fis = new FileInputStream(fileName);
+                File file = new File(fileName);
+                byte fileLength = (byte) file.length();
+                FileInputStream fis = new FileInputStream(file);
                 byte[] fileBuffer = new byte[9];
                 int numberOfBytes2,frameLength;
                 while(fis.available() > 0) {
@@ -244,8 +377,8 @@ public class DataLinkLayer {
                         System.arraycopy(secondPartCoded,0,frame,destPos+7,7);
                         destPos+=14;
                     }
-                    byte[] informFrame = createInformFrame(frame);
-                    this.getPhysicalLayer().writeRawBits(informFrame);
+                    globalInformFrame = createInformFrame(frame);
+                    this.getPhysicalLayer().writeRawBits(globalInformFrame);
                     isReady = false;
                 }    
             }
@@ -256,6 +389,10 @@ public class DataLinkLayer {
     public void readDataFromPhysicalLayer(byte[] readBuffer) {
         if (readBuffer[1] == (byte)0x41) {
             receiveLinkFrame();
+        } else if(readBuffer[1] == (byte)0x49) {
+            receiveLengthFrame(readBuffer[2]);
+        } else if(readBuffer[1] == (byte)0x50) {
+            receiveNameFrame(readBuffer);
         } else if(readBuffer[1] == (byte)0x48) {
             receiveInformFrame(readBuffer);
         } else if(readBuffer[1] == (byte)0x47) {

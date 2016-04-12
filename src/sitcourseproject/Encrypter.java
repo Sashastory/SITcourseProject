@@ -97,6 +97,27 @@ public class Encrypter {
     
     public static String intToStr(Integer[] array1,Integer[] array2) {
         StringBuilder sb = new StringBuilder(8);
+        boolean negative = false;
+        if(array1[0] == 1) {
+            negative = true;
+            for(int i =0; i < 4; i++) {
+                if(array1[i] == 0) {
+                    array1[i] = 1;
+                } else {
+                    array1[i] = 0;
+                }
+                if(array2[i] == 0) {
+                    array2[i] = 1;
+                } else {
+                    array2[i] = 0;
+                }
+            }
+            if (array2[3] == 1) {
+                array2[3] = 0;
+            } else {
+                array2[3] = 1;
+            }
+        }
         for(int i = 0; i < 8; i++) {
             if(i < 4) {
                 sb.append(array1[i]);
@@ -104,18 +125,14 @@ public class Encrypter {
                 sb.append(array2[i-4]);
             }
         }
-        return sb.toString();
+        String result = sb.toString();
+        if (negative) {
+            return "-" + result;
+        } else {
+            return result;
+        }
     }
     
-    //Исправление ошибки в одном разряде
-    public static Integer[] correction(Integer[] vector, int n) {
-        if(vector[n] == 1) {
-            vector[n] = 0;
-        } else {
-            vector[n] = 1;
-        }
-        return vector;
-    }
     public static byte decoding(byte[] vector) {
         Integer[] firstResidue;
         Integer[] secondResidue;
@@ -135,11 +152,9 @@ public class Encrypter {
         secondResidue = Encrypter.division(secondPartInt);
         for(int m = 0; m < syndromeList.size(); m++) {
             //Сравниваем на наличие такого же вектора ошибки в списке векторов
-            if (error1 = Arrays.equals(firstResidue,syndromeList.get(m))) {
-                firstPartInt = Encrypter.correction(firstPartInt,m);
-            }
-            if (error2 = Arrays.equals(secondResidue,syndromeList.get(m))) {
-                secondPartInt = Encrypter.correction(secondPartInt,m);
+            if ((error1 = Arrays.equals(firstResidue,syndromeList.get(m)))
+                    || (error2 = Arrays.equals(secondResidue,syndromeList.get(m)))) {
+                return -1;
             }
         }
         byteStr =  Encrypter.intToStr(firstPartInt, secondPartInt);

@@ -8,7 +8,6 @@ package sitcourseproject;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import java.util.*;
-import java.io.*;
 
 /**
  *
@@ -31,6 +30,7 @@ public class NewJFrame extends javax.swing.JFrame {
     
     public void createObjects() {
         portMapGUI = dataLinkLayer.getPhysicalLayer().searchForPorts();
+        dataLinkLayer.diskSpace();
         for(Object port : portMapGUI.keySet()) {
             jComboBox2.addItem((String)port);
         }
@@ -320,6 +320,8 @@ public class NewJFrame extends javax.swing.JFrame {
         if (filePath == null) {
             JOptionPane.showMessageDialog(btnSend, "Файл для отправки не был выбран!");
         } else {
+            dataLinkLayer.sendLengthOfFile(filePath);
+            dataLinkLayer.sendFileName(filePath);
             dataLinkLayer.receiveDataFromAppLayer(filePath);
             //(new Thread(new SerialWriter(communicator.getOutputStream(),filePath))).start();
         }      
