@@ -6,6 +6,7 @@
 package sitcourseproject;
 
 import gnu.io.*;
+import java.awt.Color;
 import java.io.*;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystems;
@@ -34,12 +35,11 @@ public class DataLinkLayer {
     private boolean isReceived = false;
     public boolean isReady = true;
     
-    
-    private boolean connectionFlag = false;
+    public boolean connectionFlag = false;
     private boolean ackFlag = false;
     private boolean repeatFlag = false;
     private boolean setFlag = false;
-    private boolean paramFlag = false;
+    public boolean paramFlag = false;
     
     int globalBufIndex2 = 0;
     int sum2 = 0;
@@ -169,20 +169,20 @@ public class DataLinkLayer {
     }
     
     public void receiveLengthFrame(byte length) {
-        window.jTextArea1.append("Length кадр получен" + "\n");
+        window.jTextAreaProtocol.append("Length кадр получен" + "\n");
         if (length < diskSpace) {
             byte[] ackFrame = createAckFrame();
             this.physicalLayer.writeRawBits(ackFrame);
-            window.jTextArea1.append("На диске достаточно места для записи файла" + "\n");
+            window.jTextAreaProtocol.append("\n" + "На диске достаточно места для записи файла" + "\n");
         } else {
             byte[] nakFrame = createNakFrame();
             this.physicalLayer.writeRawBits(nakFrame);
-            window.jTextArea1.append("На диске не достаточно места для записи файла" + "\n");
+            window.jTextAreaProtocol.append("\n" + "На диске недостаточно места для записи файла" + "\n");
         }
     }
     
     public void receiveNameFrame(byte[] data) {
-        window.jTextArea1.append("Name кадр получен" + "\n"); 
+        window.jTextAreaProtocol.append("Name кадр получен" + "\n"); 
         int nameLength = data[2];
         int curPos = 0;
         byte[] filePartCoded = new byte[nameLength];
@@ -201,7 +201,7 @@ public class DataLinkLayer {
     }
     
     public void receiveLinkFrame() {
-        window.jTextArea1.append("Link кадр получен" + "\n");
+        window.jTextAreaProtocol.append("Link кадр получен" + "\n");
         this.isMaster = false;
         this.ackFlag = true;
         byte[] ackFrame = createAckFrame();
@@ -209,7 +209,7 @@ public class DataLinkLayer {
     }
     
     public void receiveInformFrame(byte[] data) {
-        window.jTextArea1.append("Inform кадр получен" + "\n");
+        window.jTextAreaProtocol.append("Inform кадр получен" + "\n");
         try {
             if(!isReceived) {
                 JOptionPane.showMessageDialog(window, "Выберите путь для сохранения файла");
@@ -220,6 +220,7 @@ public class DataLinkLayer {
                 String filePath = saveFile.getSelectedFile().getAbsolutePath();
                 output = new FileOutputStream(filePath);
                 isReceived = true;
+                window.jTextAreaLog.append("\n" + "Файл принят" + "\n");
             }
             int infLength = data[2];
             int curPos = 0;
@@ -246,7 +247,7 @@ public class DataLinkLayer {
     }
     
     public void receiveSetFrame(byte[] readBuffer) {
-        window.jTextArea1.append("Set кадр получен" + "\n");
+        window.jTextAreaProtocol.append("\n" + "Set кадр получен" + "\n");
         this.setFlag = true;
         byte[] ackFrame = createAckFrame();
         this.physicalLayer.writeRawBits(ackFrame);
@@ -256,42 +257,49 @@ public class DataLinkLayer {
     }
     
     public void receiveAckFrame() {
-        window.jTextArea1.append("Ack кадр получен" + "\n");
+        window.jTextAreaProtocol.append("Ack кадр получен" + "\n");
         if(!ackFlag && !connectionFlag) {
             byte[] ackReply = createAckFrame();
             this.physicalLayer.writeRawBits(ackReply);
             ackFlag = true;
             connectionFlag = true;
-            window.jTextArea1.append("Станция назначена мастером" + "\n\n");
+            window.jTextAreaLog.append("Соединение успешно установлено" + "\n");
+            window.jTextAreaLog.setForeground(Color.black);
+            window.jTextFieldStation.setText("Ведущая" + "\n\n");
             window.getConnectButton().setEnabled(!isMaster);
         } else if(ackFlag && !connectionFlag) {
             connectionFlag = true;
-            window.jTextArea1.append("Соединение успешно установлено" + "\n");
-            window.jTextArea1.append("Станция назначена слэйвом" + "\n\n");
+            window.jTextAreaLog.append("Соединение успешно установлено" + "\n");
+            window.jTextAreaLog.setForeground(Color.black);
+            window.jTextFieldStation.setText("Ведомая" + "\n\n");
             window.getConnectButton().setEnabled(isMaster);
-            window.getSetParamsButton().setEnabled(isMaster);
+            window.getParamsButton().setEnabled(isMaster);
+            window.getFileButton().setEnabled(isMaster);
+            window.getSendButton().setEnabled(isMaster);
         } else if(!setFlag && !paramFlag) {
             byte[] ackReply = createAckFrame();
             this.physicalLayer.writeRawBits(ackReply);
             setFlag = true;
             paramFlag = true;
             this.physicalLayer.setSerialPortParams(portParameters);
-            window.jTextArea1.append("Параметры соединения установлены" + "\n\n");
+            window.jTextAreaLog.append("Параметры соединения установлены" + "\n");
+            window.jTextAreaLog.setForeground(Color.black);
         } else if(setFlag && !paramFlag) {
             paramFlag = true;
             this.physicalLayer.setSerialPortParams(portParameters);
-            window.jTextArea1.append("Параметры порта успешно получены" + "\n");
-            window.jTextArea1.append("Параметры соединения установлены" + "\n\n");
+            window.jTextAreaProtocol.append("Параметры порта успешно получены" + "\n");
+            window.jTextAreaLog.append("Параметры соединения установлены" + "\n");
+            window.jTextAreaLog.setForeground(Color.black);
         } else if(!isReady && connectionFlag && paramFlag) {
             isReady = true;
         }    
     }
     
     public void receiveNakFrame() {
-        window.jTextArea1.append("Nak кадр получен" + "\n");
+        window.jTextAreaProtocol.append("Nak кадр получен" + "\n");
         while(repeatCount < 3) {
            this.physicalLayer.writeRawBits(globalInformFrame);
-           window.jTextArea1.append("Inform кадр отправлен повторно" + "\n");
+           window.jTextAreaProtocol.append("Inform кадр отправлен повторно" + "\n");
            repeatCount++;
         }
         if (repeatCount == 3) {
@@ -301,8 +309,8 @@ public class DataLinkLayer {
     }
     
     public void receiveDisconnectFrame() {
-        window.jTextArea1.append("Disconnect кадр получен" + "\n"
-        + "Разрыв соединения");
+        window.jTextAreaProtocol.append("Disconnect кадр получен" + "\n");
+        window.jTextAreaLog.append("Разрыв соединения");
     }
     
     public void initializePortParameters(byte[] params) {
