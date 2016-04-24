@@ -49,6 +49,7 @@ public class SerialPortProject implements SerialPortEventListener {
     String logText = "";
     String test = "";
     //Флаги
+    private boolean openFlag = false;
     private boolean isRecieved = false;
     private boolean isReady = false;
     private boolean isInterrupted = false;
@@ -120,13 +121,15 @@ public class SerialPortProject implements SerialPortEventListener {
             //для GUI
             //setConnection(true);
             setConnected(true);
+            window.getDisconnectButton().setEnabled(true);
             //Логи
             logText = port + " opened successfully.";
             window.txtLog.setForeground(Color.black);
             window.txtLog.append(logText + "\n");
         }
         catch (PortInUseException e) {
-            logText = port + " is in use. (" + e.toString() + ")";          
+            logText = port + " is in use. (" + e.toString() + ")";   
+            openFlag = true;
             window.txtLog.setForeground(Color.RED);
             window.txtLog.append(logText + "\n");
         }
@@ -187,6 +190,7 @@ public class SerialPortProject implements SerialPortEventListener {
             logText = "Disconnected ";
             window.txtLog.setForeground(Color.red);
             window.txtLog.append(logText+"\n");
+            window.ResetAllButtons();
         } catch (Exception ex) {
             logText = "Failed to close " + serialPort.getName() + "(" + ex.toString() + ")";
             window.txtLog.setForeground(Color.red);
@@ -200,6 +204,10 @@ public class SerialPortProject implements SerialPortEventListener {
     //Подключились к порту, устанавливаем флаг
     public void setConnected(boolean bConnected) {
         this.bConnected = bConnected;
+    }
+    
+    public boolean getOpenFlag() {
+        return openFlag;
     }
     
     public boolean getConnection() {
@@ -220,12 +228,29 @@ public class SerialPortProject implements SerialPortEventListener {
     public void serialEvent(SerialPortEvent evt) {
         switch(evt.getEventType()) {
             case SerialPortEvent.BI:
+                System.out.println("BI");
+                break;
             case SerialPortEvent.OE:
             case SerialPortEvent.FE:
             case SerialPortEvent.PE:
             case SerialPortEvent.CD:
             case SerialPortEvent.CTS:
             case SerialPortEvent.DSR:
+            {
+                System.out.println("DSR");
+                boolean flag = this.serialPort.isDSR();
+                if(!this.serialPort.isDSR()) {
+                    isConnected = false;
+                    dataLinkLayer.isConnect = false;
+                    JOptionPane.showMessageDialog(window, "Соединение DSR потеряно");
+                    this.disconnect();
+                    window.ResetAllButtons();
+                    window.ClearAll();
+//                    if(isOpened) {
+//                    this.disconnect();
+//                    }
+                }
+            }
 //            {
 //                if(!serialPort.isDSR()) {
 //                    isConnected = false;
