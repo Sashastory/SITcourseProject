@@ -55,6 +55,7 @@ public class SerialPortProject implements SerialPortEventListener {
     private boolean isOpened = false;
     private boolean isConnected = false;
     private boolean isMaster = false;
+    public boolean isExp = false;
     
     private int[] baudRates = new int[]{38400,57600,115200,230400};
     int sum = 0;
@@ -64,6 +65,7 @@ public class SerialPortProject implements SerialPortEventListener {
     public SerialPortProject(NewJFrame window, DataLinkLayer layer) {
         this.window = window;
         this.dataLinkLayer = layer;
+        this.isExp = false;
     }
     
     public SerialPortProject(DataLinkLayer layer) {
@@ -75,7 +77,7 @@ public class SerialPortProject implements SerialPortEventListener {
     public HashMap searchForPorts() {
         ports = CommPortIdentifier.getPortIdentifiers();      
         if (ports == null) {
-            System.out.println("No COM ports found!");
+            System.out.println("COM порты не найдены!");
         } else {
             while (ports.hasMoreElements()) {           
                 CommPortIdentifier curPort = (CommPortIdentifier)ports.nextElement();
@@ -98,9 +100,9 @@ public class SerialPortProject implements SerialPortEventListener {
             System.out.println("baud= "+baudRate + " dataBits= " + dataBits+ " stopBits= "+stopBits+" parity="+parity);
             serialPort.setSerialPortParams(baudRate, dataBits, stopBits,parity);
         } catch (UnsupportedCommOperationException e) {
-            logText = "Failed to set parameters " + "(" + e.toString() + ")";
-            window.txtLog.append(logText + "\n");
-            window.txtLog.setForeground(Color.RED);
+            logText = "Не удалось установить параметры соединения!";
+            window.jTextAreaLog.append(logText + "\n");
+            window.jTextAreaLog.setForeground(Color.RED);
         }
     }
     //Открываем порт
@@ -112,7 +114,7 @@ public class SerialPortProject implements SerialPortEventListener {
             isOpened = true;
             serialPort = (SerialPort)commPort;
             serialPort.setDTR(true);
-            JOptionPane.showMessageDialog(window, "COM порт определен");
+            //JOptionPane.showMessageDialog(window, "COM порт определен");
             //Параметры будем брать с меню
 //            setSerialPortParams(master);
 //            serialPort.setSerialPortParams(57600, SerialPort.DATABITS_8, 
@@ -121,14 +123,17 @@ public class SerialPortProject implements SerialPortEventListener {
             //setConnection(true);
             setConnected(true);
             //Логи
-            logText = port + " opened successfully.";
-            window.txtLog.setForeground(Color.black);
-            window.txtLog.append(logText + "\n");
+            logText = "Порт " + port + " успешно открыт";
+            window.jTextAreaLog.setForeground(Color.black);
+            window.jTextAreaLog.append(logText + "\n");
+            isExp = false;
         }
         catch (PortInUseException e) {
-            logText = port + " is in use. (" + e.toString() + ")";          
-            window.txtLog.setForeground(Color.RED);
-            window.txtLog.append(logText + "\n");
+            isExp = true;
+            logText = "Порт " + port + " уже используется";          
+            window.jTextAreaLog.setForeground(Color.RED);
+            window.jTextAreaLog.append(logText + "\n");
+            //window.getOpenButton().setEnabled(true);
         }
         
     }
@@ -151,8 +156,8 @@ public class SerialPortProject implements SerialPortEventListener {
         }
         catch (IOException e) {
             logText = "I/O Streams failed to open. (" + e.toString() + ")";
-            window.txtLog.setForeground(Color.red);
-            window.txtLog.append(logText + "\n");
+            window.jTextAreaLog.setForeground(Color.red);
+            window.jTextAreaLog.append(logText + "\n");
             return successful;
         }
     } 
@@ -166,9 +171,9 @@ public class SerialPortProject implements SerialPortEventListener {
             serialPort.notifyOnDSR(true);
             serialPort.notifyOnCarrierDetect(true);
         } catch (TooManyListenersException ex) {
-            logText = "Too many listeners. (" + ex.toString() + ")";
-            window.txtLog.setForeground(Color.red);
-            window.txtLog.append(logText+"\n");
+            logText = "Too many listeners";
+            window.jTextAreaLog.setForeground(Color.red);
+            window.jTextAreaLog.append(logText+"\n");
         }
         
     }    
@@ -184,13 +189,19 @@ public class SerialPortProject implements SerialPortEventListener {
             
             isConnected = false;
             
-            logText = "Disconnected ";
-            window.txtLog.setForeground(Color.red);
-            window.txtLog.append(logText+"\n");
+            logText = "Порт закрыт \n";
+            window.jTextAreaLog.setForeground(Color.red);
+            window.jTextAreaLog.append(logText+"\n");
+            window.jTextFieldStation.setText("");
+            window.getOpenButton().setEnabled(true);
+            window.getConnectButton().setEnabled(true);
+            window.getParamsButton().setEnabled(true);
+            window.getFileButton().setEnabled(true);
+            window.getSendButton().setEnabled(true);
         } catch (Exception ex) {
-            logText = "Failed to close " + serialPort.getName() + "(" + ex.toString() + ")";
-            window.txtLog.setForeground(Color.red);
-            window.txtLog.append(logText + "\n");        
+            logText = "Ошибка при закрытии порта " + serialPort.getName();
+            window.jTextAreaLog.setForeground(Color.red);
+            window.jTextAreaLog.append(logText + "\n");        
         }
     }
     
