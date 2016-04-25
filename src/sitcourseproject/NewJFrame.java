@@ -51,13 +51,13 @@ public class NewJFrame extends javax.swing.JFrame {
         for(Object port : portMapGUI.keySet()) {
             jComboBox2.addItem((String)port);
         }
-        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_5));
-        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_6));
-        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_7));
         jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_8));
+        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_7));
+        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_6));
+        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_5));
         
-        jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_EVEN));
         jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_NONE));
+        jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_EVEN));
         jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_MARK));
         jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_ODD));
         
@@ -460,7 +460,7 @@ public class NewJFrame extends javax.swing.JFrame {
 
     private void btnDisconnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDisconnectActionPerformed
         // TODO add your handling code here:
-        dataLinkLayer.getPhysicalLayer().disconnect();    
+        dataLinkLayer.closeConnection();    
     }//GEN-LAST:event_btnDisconnectActionPerformed
 
     private void btnSendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSendActionPerformed
@@ -512,10 +512,21 @@ public class NewJFrame extends javax.swing.JFrame {
             jTextAreaLog.setForeground(Color.red);
         } else {
             byte[] masterParams = new byte[4];
-            masterParams[0] = 2;
-            masterParams[1] = 8;
-            masterParams[2] = 1;
-            masterParams[3] = 0;
+            String chosenRate = (String)jComboBox1.getSelectedItem();
+            String chosenDataBits = (String)jComboBoxDataBits.getSelectedItem();
+            String chosenStopBits = (String)jComboBoxStopBits.getSelectedItem();
+            String chosenParity = (String)jComboBoxParityNone.getSelectedItem();
+            byte rateIndex = 2;
+            for(byte i=0;i<4;i++) {
+                if(Integer.parseInt(chosenRate) ==
+                        dataLinkLayer.getPhysicalLayer().getBaudRates()[i]) {
+                    rateIndex = i;
+                }
+            }
+            masterParams[0] = rateIndex;
+            masterParams[1] = Byte.parseByte(chosenDataBits);
+            masterParams[2] = Byte.parseByte(chosenStopBits);
+            masterParams[3] = Byte.parseByte(chosenParity);
  
             dataLinkLayer.initializePortParameters(masterParams);
         }

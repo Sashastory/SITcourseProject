@@ -176,10 +176,15 @@ public class SerialPortProject implements SerialPortEventListener {
     //Закрывает COM порт
     public void disconnect() {       
         try { 
+            new Thread(){
+                @Override
+                public void run(){
+                    serialPort.removeEventListener();
+                    serialPort.close();
+                }
+            }.start();
             input.close();
             output.close();
-            serialPort.removeEventListener();
-            serialPort.close();
             setConnected(false);
             
             isConnected = false;

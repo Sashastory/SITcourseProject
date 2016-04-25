@@ -39,7 +39,7 @@ public class DataLinkLayer {
     
     public boolean connectionFlag = false;
     private boolean ackFlag = false;
-    private boolean repeatFlag = false;
+    private boolean dscFlag = false;
     private boolean setFlag = false;
     public boolean paramFlag = false;
     
@@ -301,7 +301,11 @@ public class DataLinkLayer {
             window.jTextAreaLog.setForeground(Color.black);
         } else if(!isReady && connectionFlag && paramFlag) {
             isReady = true;
-        }    
+        } else if(dscFlag) {
+            window.jTextAreaLog.append("Разрыв соединения");
+            dscFlag = false;
+            this.physicalLayer.disconnect();
+        }   
     }
     
     public void receiveNakFrame() {
@@ -312,14 +316,16 @@ public class DataLinkLayer {
            repeatCount++;
         }
         if (repeatCount == 3) {
-            byte[] dscFrame = createDisconnectFrame();
-            this.physicalLayer.writeRawBits(dscFrame);
+            this.closeConnection();
         }
     }
     
     public void receiveDisconnectFrame() {
         window.jTextAreaProtocol.append("Disconnect кадр получен" + "\n");
-        window.jTextAreaLog.append("Разрыв соединения");
+        window.jTextAreaLog.append("Разрыв соединения" + "\n");
+        byte[] ackFrame = createAckFrame();
+        this.physicalLayer.writeRawBits(ackFrame);
+        this.physicalLayer.disconnect();
     }
     
     public void initializePortParameters(byte[] params) {
@@ -331,6 +337,12 @@ public class DataLinkLayer {
         byte[] linkFrame = createLinkFrame();
         this.physicalLayer.writeRawBits(linkFrame);
         this.isMaster = true;
+    }
+    
+    public void closeConnection() {
+        byte[] dscFrame = createDisconnectFrame();
+        this.physicalLayer.writeRawBits(dscFrame);
+        this.dscFlag = true;
     }
     
     public void sendLengthOfFile(String fileName) {
