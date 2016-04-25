@@ -59,25 +59,6 @@ public class NewJFrame extends javax.swing.JFrame {
         return this.btnSetParams;
     }
     
-<<<<<<< HEAD
-    public javax.swing.JButton getDisconnectButton() {
-        return this.btnDisconnect;
-    }
-    public void ClearAll() {
-        this.txtLog.setText("");
-        this.jFormattedTextField1.setText("");
-        this.jTextArea1.setText("");
-    }
-    
-    public void ResetAllButtons() {
-        this.btnConnect.setEnabled(true);
-        this.btnSend.setEnabled(false);
-        this.btnFile.setEnabled(false);
-        this.btnOpen.setEnabled(true);
-        this.btnSetParams.setEnabled(false);
-        this.btnDisconnect.setEnabled(false);
-    }
-=======
     public javax.swing.JButton getFileButton() {
         return this.btnFile;
     }
@@ -86,7 +67,6 @@ public class NewJFrame extends javax.swing.JFrame {
         return this.btnSend;
     }
     
->>>>>>> 906300599edcb3391b0ff207e2fd628646cd8d10
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -494,15 +474,9 @@ public class NewJFrame extends javax.swing.JFrame {
         String serialPort = (String)jComboBox2.getSelectedItem();
         if (dataLinkLayer.getPhysicalLayer().getConnection() == false) {
             dataLinkLayer.getPhysicalLayer().openSerialPort(serialPort);
-<<<<<<< HEAD
-            if(!dataLinkLayer.getPhysicalLayer().getOpenFlag()) {
-                this.btnOpen.setEnabled(false);
-            }
-=======
             if (dataLinkLayer.getPhysicalLayer().isExp == true) {
                 getOpenButton().setEnabled(true);
             } else getOpenButton().setEnabled(false);
->>>>>>> 906300599edcb3391b0ff207e2fd628646cd8d10
             if (dataLinkLayer.getPhysicalLayer().getConnected() == true) {
                 if (dataLinkLayer.getPhysicalLayer().initIOStream() == true) {
                     dataLinkLayer.getPhysicalLayer().initListener();

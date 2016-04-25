@@ -123,7 +123,6 @@ public class SerialPortProject implements SerialPortEventListener {
             //для GUI
             //setConnection(true);
             setConnected(true);
-            window.getDisconnectButton().setEnabled(true);
             //Логи
             logText = "Порт " + port + " успешно открыт";
             window.jTextAreaLog.setForeground(Color.black);
@@ -131,18 +130,11 @@ public class SerialPortProject implements SerialPortEventListener {
             isExp = false;
         }
         catch (PortInUseException e) {
-<<<<<<< HEAD
-            logText = port + " is in use. (" + e.toString() + ")";   
-            openFlag = true;
-            window.txtLog.setForeground(Color.RED);
-            window.txtLog.append(logText + "\n");
-=======
             isExp = true;
             logText = "Порт " + port + " уже используется";          
             window.jTextAreaLog.setForeground(Color.RED);
             window.jTextAreaLog.append(logText + "\n");
             //window.getOpenButton().setEnabled(true);
->>>>>>> 906300599edcb3391b0ff207e2fd628646cd8d10
         }
         
     }
@@ -198,12 +190,6 @@ public class SerialPortProject implements SerialPortEventListener {
             
             isConnected = false;
             
-<<<<<<< HEAD
-            logText = "Disconnected ";
-            window.txtLog.setForeground(Color.red);
-            window.txtLog.append(logText+"\n");
-            window.ResetAllButtons();
-=======
             logText = "Порт закрыт \n";
             window.jTextAreaLog.setForeground(Color.red);
             window.jTextAreaLog.append(logText+"\n");
@@ -213,7 +199,6 @@ public class SerialPortProject implements SerialPortEventListener {
             window.getParamsButton().setEnabled(true);
             window.getFileButton().setEnabled(true);
             window.getSendButton().setEnabled(true);
->>>>>>> 906300599edcb3391b0ff207e2fd628646cd8d10
         } catch (Exception ex) {
             logText = "Ошибка при закрытии порта " + serialPort.getName();
             window.jTextAreaLog.setForeground(Color.red);
@@ -267,8 +252,6 @@ public class SerialPortProject implements SerialPortEventListener {
                     dataLinkLayer.isConnect = false;
                     JOptionPane.showMessageDialog(window, "Соединение DSR потеряно");
                     this.disconnect();
-                    window.ResetAllButtons();
-                    window.ClearAll();
 //                    if(isOpened) {
 //                    this.disconnect();
 //                    }
