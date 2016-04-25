@@ -10,11 +10,9 @@ import java.io.*;
 import java.awt.Color;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.TooManyListenersException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 /**
  *
@@ -138,10 +136,6 @@ public class SerialPortProject implements SerialPortEventListener {
         }
         
     }
-    //Устанавливаем соединение
-    public void connect() {
-        
-    }
     
     //Открываем потоки
     //pre: открытый порт
@@ -181,11 +175,11 @@ public class SerialPortProject implements SerialPortEventListener {
     
     //Закрывает COM порт
     public void disconnect() {       
-        try {           
-            serialPort.removeEventListener();
-            serialPort.close();
+        try { 
             input.close();
             output.close();
+            serialPort.removeEventListener();
+            serialPort.close();
             setConnected(false);
             
             isConnected = false;
@@ -257,17 +251,6 @@ public class SerialPortProject implements SerialPortEventListener {
 //                    }
                 }
             }
-//            {
-//                if(!serialPort.isDSR()) {
-//                    isConnected = false;
-//                    //dataLinkLayer.isConnect = false;
-//                    //GUI
-//                    if(isOpened)
-//                        serialPort.close();
-//                } else {
-//                    //connect?
-//                }
-//            }
             break;
             case SerialPortEvent.RI:
             case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
@@ -343,6 +326,9 @@ public class SerialPortProject implements SerialPortEventListener {
         }    
     }
     
+    public int[] getBaudRates() {
+        return this.baudRates;
+    } 
     public OutputStream getOutputStream() {
         return this.output;
     }
@@ -350,7 +336,6 @@ public class SerialPortProject implements SerialPortEventListener {
     public InputStream getInputStream() {
         return this.input;
     }
-
     /**
      * @param args the command line arguments
      */

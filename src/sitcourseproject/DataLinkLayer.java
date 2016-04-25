@@ -12,6 +12,8 @@ import java.nio.file.FileStore;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 /**
@@ -56,6 +58,10 @@ public class DataLinkLayer {
     
     public SerialPortProject getPhysicalLayer() {
         return physicalLayer;
+    }
+    
+    public void setReceived(boolean flag) {
+        this.isReceived = flag;
     }
     
     public static Integer[] toBitArray(byte b) {
@@ -169,35 +175,49 @@ public class DataLinkLayer {
     }
     
     public void receiveLengthFrame(byte length) {
-        window.jTextAreaProtocol.append("Length кадр получен" + "\n");
+        window.jTextAreaProtocol.append("\n" + "Length кадр получен" + "\n");
         if (length < diskSpace) {
             byte[] ackFrame = createAckFrame();
             this.physicalLayer.writeRawBits(ackFrame);
-            window.jTextAreaProtocol.append("\n" + "На диске достаточно места для записи файла" + "\n");
+            window.jTextAreaProtocol.append("На диске достаточно места для записи файла" + "\n");
         } else {
             byte[] nakFrame = createNakFrame();
             this.physicalLayer.writeRawBits(nakFrame);
             window.jTextAreaProtocol.append("\n" + "На диске недостаточно места для записи файла" + "\n");
         }
+        
     }
     
     public void receiveNameFrame(byte[] data) {
-        window.jTextAreaProtocol.append("Name кадр получен" + "\n"); 
-        int nameLength = data[2];
-        int curPos = 0;
-        byte[] filePartCoded = new byte[nameLength];
-        byte[] filePart = new byte[nameLength/14];
-        byte[] codedByte = new byte[14];
-        System.arraycopy(data,3,filePartCoded,0,nameLength);
-        for(int frameIndex=0; frameIndex < nameLength; frameIndex+=14,curPos++) {
-            System.arraycopy(filePartCoded,frameIndex,codedByte,0,14);
-            byte temp = Encrypter.decoding(codedByte);
-            filePart[curPos] = temp;
+        try {
+            window.jTextAreaProtocol.append("Name кадр получен" + "\n");
+            int nameLength = data[2];
+            int curPos = 0;
+            byte[] filePartCoded = new byte[nameLength];
+            byte[] filePart = new byte[nameLength/14];
+            byte[] codedByte = new byte[14];
+            System.arraycopy(data,3,filePartCoded,0,nameLength);
+            for(int frameIndex=0; frameIndex < nameLength; frameIndex+=14,curPos++) {
+                System.arraycopy(filePartCoded,frameIndex,codedByte,0,14);
+                byte temp = Encrypter.decoding(codedByte);
+                filePart[curPos] = temp;
+            }
+            globalFileName = new String(filePart);
+            fileExtension = globalFileName.substring(globalFileName.lastIndexOf('.')+1);
+            byte[] ackFrame = createAckFrame();
+            this.physicalLayer.writeRawBits(ackFrame);
+            JOptionPane.showMessageDialog(window, "Выберите путь для сохранения файла");
+            File file = new File(globalFileName);
+            JFileChooser  saveFile = new JFileChooser();
+            saveFile.setSelectedFile(file);
+            saveFile.showSaveDialog(null);
+            String filePath = saveFile.getSelectedFile().getAbsolutePath();
+            output = new FileOutputStream(filePath);
+            isReceived = true;
+            window.jTextAreaLog.append("\n" + "Файл принят" + "\n");
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(DataLinkLayer.class.getName()).log(Level.SEVERE, null, ex);
         }
-        globalFileName = new String(filePart);
-        fileExtension = globalFileName.substring(globalFileName.lastIndexOf('.')+1);
-        byte[] ackFrame = createAckFrame();
-        this.physicalLayer.writeRawBits(ackFrame);
     }
     
     public void receiveLinkFrame() {
@@ -211,17 +231,6 @@ public class DataLinkLayer {
     public void receiveInformFrame(byte[] data) {
         window.jTextAreaProtocol.append("Inform кадр получен" + "\n");
         try {
-            if(!isReceived) {
-                JOptionPane.showMessageDialog(window, "Выберите путь для сохранения файла");
-                File file = new File(globalFileName);
-                JFileChooser  saveFile = new JFileChooser();
-                saveFile.setSelectedFile(file);
-                saveFile.showSaveDialog(null);
-                String filePath = saveFile.getSelectedFile().getAbsolutePath();
-                output = new FileOutputStream(filePath);
-                isReceived = true;
-                window.jTextAreaLog.append("\n" + "Файл принят" + "\n");
-            }
             int infLength = data[2];
             int curPos = 0;
             byte[] filePartCoded = new byte[infLength];

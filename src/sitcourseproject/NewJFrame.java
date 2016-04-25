@@ -5,6 +5,7 @@
  */
 package sitcourseproject;
 
+import gnu.io.SerialPort;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import java.util.*;
@@ -43,9 +44,26 @@ public class NewJFrame extends javax.swing.JFrame {
         
         portMapGUI = dataLinkLayer.getPhysicalLayer().searchForPorts();
         dataLinkLayer.diskSpace();
+        int[] rates = dataLinkLayer.getPhysicalLayer().getBaudRates();
+        for(int rate : rates) {
+            jComboBox1.addItem(String.valueOf(rate));
+        }
         for(Object port : portMapGUI.keySet()) {
             jComboBox2.addItem((String)port);
         }
+        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_5));
+        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_6));
+        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_7));
+        jComboBoxDataBits.addItem(String.valueOf(SerialPort.DATABITS_8));
+        
+        jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_EVEN));
+        jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_NONE));
+        jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_MARK));
+        jComboBoxParityNone.addItem(String.valueOf(SerialPort.PARITY_ODD));
+        
+        jComboBoxStopBits.addItem(String.valueOf(SerialPort.STOPBITS_1));
+        jComboBoxStopBits.addItem(String.valueOf(SerialPort.STOPBITS_1_5));
+        jComboBoxStopBits.addItem(String.valueOf(SerialPort.STOPBITS_2));
     }
     public javax.swing.JButton getOpenButton() {
         return this.btnOpen;      
@@ -455,7 +473,6 @@ public class NewJFrame extends javax.swing.JFrame {
             dataLinkLayer.receiveDataFromAppLayer(filePath);
             jTextAreaLog.append("Файл " + fileName1 + " отправлен" + "\n");
             jFormattedTextFile.setText("");
-            //(new Thread(new SerialWriter(communicator.getOutputStream(),filePath))).start();
         }      
         jFormattedTextFile.setText("");
     }//GEN-LAST:event_btnSendActionPerformed
@@ -495,15 +512,11 @@ public class NewJFrame extends javax.swing.JFrame {
             jTextAreaLog.setForeground(Color.red);
         } else {
             byte[] masterParams = new byte[4];
-            byte[] slaveParams = new byte[4];
             masterParams[0] = 2;
             masterParams[1] = 8;
             masterParams[2] = 1;
             masterParams[3] = 0;
-            slaveParams[0] = 2;
-            slaveParams[1] = 8;
-            slaveParams[2] = 1;
-            slaveParams[3] = 0;
+ 
             dataLinkLayer.initializePortParameters(masterParams);
         }
     }//GEN-LAST:event_btnSetParamsActionPerformed
