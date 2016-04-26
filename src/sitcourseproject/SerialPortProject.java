@@ -161,8 +161,7 @@ public class SerialPortProject implements SerialPortEventListener {
             logText = "Too many listeners";
             window.jTextAreaLog.setForeground(Color.red);
             window.jTextAreaLog.append(logText+"\n");
-        }
-        
+        }  
     }    
     
     //Закрывает COM порт
@@ -266,8 +265,6 @@ public class SerialPortProject implements SerialPortEventListener {
     //Пишем
    public void writeRawBits(byte[] data) {
        try {
-//           this.isReady = false;
-//           this.dataLinkLayer.isReady = false;
            this.output.write(data);
        } catch (IOException e) {
        }

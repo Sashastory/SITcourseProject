@@ -9,10 +9,6 @@ import gnu.io.SerialPort;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import java.util.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import javax.swing.JInternalFrame;
-import javax.swing.*;
 import java.awt.*;
 
 /**
