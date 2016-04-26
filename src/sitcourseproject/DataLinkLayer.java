@@ -38,9 +38,9 @@ public class DataLinkLayer {
     public boolean isReady = true;
     
     public boolean connectionFlag = false;
-    private boolean ackFlag = false;
-    private boolean dscFlag = false;
-    private boolean setFlag = false;
+    public boolean ackFlag = false;
+    public boolean dscFlag = false;
+    public boolean setFlag = false;
     public boolean paramFlag = false;
     
     int globalBufIndex2 = 0;
@@ -302,7 +302,7 @@ public class DataLinkLayer {
         } else if(!isReady && connectionFlag && paramFlag) {
             isReady = true;
         } else if(dscFlag) {
-            window.jTextAreaLog.append("Разрыв соединения");
+            window.jTextAreaLog.append("Разрыв соединения" + "\n");
             dscFlag = false;
             this.physicalLayer.disconnect();
         }   

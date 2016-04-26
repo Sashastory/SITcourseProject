@@ -82,7 +82,6 @@ public class SerialPortProject implements SerialPortEventListener {
                 CommPortIdentifier curPort = (CommPortIdentifier)ports.nextElement();
                 //get only serial ports
                 if (curPort.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-                //window.cboxPorts.addItem(curPort.getName());
                 portMap.put(curPort.getName(), curPort);
                 }
             }
@@ -113,13 +112,6 @@ public class SerialPortProject implements SerialPortEventListener {
             isOpened = true;
             serialPort = (SerialPort)commPort;
             serialPort.setDTR(true);
-            //JOptionPane.showMessageDialog(window, "COM порт определен");
-            //Параметры будем брать с меню
-//            setSerialPortParams(master);
-//            serialPort.setSerialPortParams(57600, SerialPort.DATABITS_8, 
-//                    SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
-            //для GUI
-            //setConnection(true);
             setConnected(true);
             //Логи
             logText = "Порт " + port + " успешно открыт";
@@ -187,6 +179,11 @@ public class SerialPortProject implements SerialPortEventListener {
             output.close();
             setConnected(false);
             
+            dataLinkLayer.connectionFlag = false;
+            dataLinkLayer.paramFlag = false;
+            dataLinkLayer.setFlag = false;
+            dataLinkLayer.ackFlag = false;
+            dataLinkLayer.dscFlag = false;
             isConnected = false;
             
             logText = "Порт закрыт \n";
@@ -244,16 +241,14 @@ public class SerialPortProject implements SerialPortEventListener {
             case SerialPortEvent.CTS:
             case SerialPortEvent.DSR:
             {
-                System.out.println("DSR");
-                boolean flag = this.serialPort.isDSR();
+                System.out.println("DSR " + serialPort.isDSR());
                 if(!this.serialPort.isDSR()) {
                     isConnected = false;
                     dataLinkLayer.isConnect = false;
                     JOptionPane.showMessageDialog(window, "Соединение DSR потеряно");
-                    this.disconnect();
-//                    if(isOpened) {
-//                    this.disconnect();
-//                    }
+                    if(isOpened) {
+                        this.disconnect();
+                    }
                 }
             }
             break;
@@ -267,21 +262,6 @@ public class SerialPortProject implements SerialPortEventListener {
             break;
         }
         
-    }
-    public void writeData(String fileName) {
-        try {
-            FileInputStream fis = new FileInputStream(fileName);
-            //input = fis;
-            byte buf[] = new byte[100000];
-            int length;
-            while(true) {
-                length = fis.read(buf);
-                if (length<0) break;
-                output.write(buf,0,length);
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(SerialPortProject.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
     //Пишем
    public void writeRawBits(byte[] data) {
